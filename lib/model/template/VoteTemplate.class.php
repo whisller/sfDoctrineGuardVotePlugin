@@ -19,6 +19,11 @@ class Doctrine_Template_Vote extends Doctrine_Template
         $this->_plugin->initialize($this->_table);
     }
 
+    public function setTableDefinition()
+    {
+        $this->hasColumn('vote', 'integer');
+    }
+
     protected function getVoteTableInstance()
     {
         $invoker = $this->getInvoker();
@@ -46,6 +51,15 @@ class Doctrine_Template_Vote extends Doctrine_Template
         $invokerVote->vote_type        = $type;
         $invokerVote->sf_guard_user_id = $userId;
         $invokerVote->save();
+
+        // remove cache
+        $driver = $this->getTable()->getAttribute(Doctrine_Core::ATTR_RESULT_CACHE);
+
+        $driver->delete(get_class($invoker).'Vote_'.$invoker->getId().'_'.$type);
+
+        // update amount of votes in object
+        $invoker->vote = $this->getVotesCountPositive()-$this->getVotesCountNegative();
+        $invoker->save();
     }
 
 
@@ -57,7 +71,7 @@ class Doctrine_Template_Vote extends Doctrine_Template
      * @return Boolean
      * @author Daniel Ancuta <whisller@gmail.com>
      */
-    public function checkCanAddVote()
+    public function checkCanAddVote($userId = null)
     {
         $user = sfContext::getInstance()->getUser();
 
@@ -67,10 +81,15 @@ class Doctrine_Template_Vote extends Doctrine_Template
 
         $invoker = $this->getInvoker();
 
-        $vote = $this->getVoteTableInstance()->findOneByIdAndSfGuardUserId($invoker->getId(), $user->getGuardUser()->getId());
+        $q = Doctrine_Query::create()
+                ->select('COUNT(v.id)')
+                ->where('v.id = ?',                  $invoker->getId())
+                ->addWhere('v.sf_guard_user_id = ?', $userId)
+                ->from('sfMemVote v');
 
-        // if we have not found object then user can add vote
-        return !is_object($vote);
+        $results = $q->execute(array(), Doctrine_Core::HYDRATE_NONE);
+
+        return !(boolean)$results[0][0];
     }
 
     /**
@@ -84,13 +103,16 @@ class Doctrine_Template_Vote extends Doctrine_Template
     {
         $invoker = $this->getInvoker();
 
-        $votesCount = $this->getVoteTableInstance()->findByIdAndVoteType($invoker->getId(), $type);
+        $q = Doctrine_Query::create()
+                ->select('COUNT(v.id)')
+                ->where('v.id = ?',           $invoker->getId())
+                ->addWhere('v.vote_type = ?', $type)
+                ->from('sfMemVote v')
+                ->useResultCache(true, 86400, get_class($invoker).'Vote_'.$invoker->getId().'_'.$type);
 
-        if ($votesCount) {
-            return count($votesCount);
-        } else {
-            return 0;
-        }
+        $results = $q->execute(array(), Doctrine_Core::HYDRATE_NONE);
+
+        return $results[0][0];
     }
 
     /**
@@ -99,7 +121,7 @@ class Doctrine_Template_Vote extends Doctrine_Template
      * @return Integer
      * @author Daniel Ancuta <whisller@gmail.com>
      */
-    public function getVotesCountPlus()
+    public function getVotesCountPositive()
     {
         return $this->getVotesCount(true);
     }
@@ -110,7 +132,7 @@ class Doctrine_Template_Vote extends Doctrine_Template
      * @return Integer
      * @author Daniel Ancuta <whisller@gmail.com>
      */
-    public function getVotesCountMinus()
+    public function getVotesCountNegative()
     {
         return $this->getVotesCount(false);
     }
