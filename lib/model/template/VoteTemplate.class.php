@@ -1,9 +1,9 @@
 <?php
 /**
- * This behavior is adding two new columns to table with behavior, vote_plus and vote_minus that represents user votes.
+ * This template is adding couple of special methods for your object.
  *
  * @package    sfDoctrineVotePlugin
- * @subpackage lib
+ * @subpackage lib.model.template
  * @author     Daniel Ancuta <whisller@gmail.com>
  */
 class Doctrine_Template_Vote extends Doctrine_Template
@@ -19,26 +19,35 @@ class Doctrine_Template_Vote extends Doctrine_Template
         $this->_plugin->initialize($this->_table);
     }
 
-    /**
-     * @see    Doctrine_Template::setTableDefinition()
-     * @author Daniel Ancuta <whisller@gmail.com>
-     */
-    public function setTableDefinition()
+    protected function getVoteTableInstance()
     {
-        $this->hasColumn('votes_plus',  'integer', null, array('default' => 0));
-        $this->hasColumn('votes_minus', 'integer', null, array('default' => 0));
+        $invoker = $this->getInvoker();
+
+        $instance = Doctrine_Core::getTable(get_class($invoker).'Vote');
+
+        return $instance;
     }
 
     /**
-     * Method is adding new vote for object.
+     * Adding new vote for object.
      *
      * @param Integer $vote
+     * @param Integer $userId
      * @author Daniel Ancuta <whisller@gmail.com>
      */
-    public function addVote($vote)
+    public function addVote($type, $userId)
     {
-        var_dump($vote);die();
+        $invoker = $this->getInvoker();
+
+        $invokerVoteClassName = get_class($invoker).'Vote';
+
+        $invokerVote = new $invokerVoteClassName;
+        $invokerVote->id               = $invoker->getId();
+        $invokerVote->vote_type        = $type;
+        $invokerVote->sf_guard_user_id = $userId;
+        $invokerVote->save();
     }
+
 
     /**
      * Check if logged in user can add vote for object.
@@ -56,6 +65,53 @@ class Doctrine_Template_Vote extends Doctrine_Template
             return false;
         }
 
+        $invoker = $this->getInvoker();
 
+        $vote = $this->getVoteTableInstance()->findOneByIdAndSfGuardUserId($invoker->getId(), $user->getGuardUser()->getId());
+
+        // if we have not found object then user can add vote
+        return !is_object($vote);
+    }
+
+    /**
+     * Get amount of votes.
+     *
+     * @param  type $type
+     * @return type Integer
+     * @author Daniel Ancuta <whisller@gmail.com>
+     */
+    protected function getVotesCount($type)
+    {
+        $invoker = $this->getInvoker();
+
+        $votesCount = $this->getVoteTableInstance()->findByIdAndVoteType($invoker->getId(), $type);
+
+        if ($votesCount) {
+            return count($votesCount);
+        } else {
+            return 0;
+        }
+    }
+
+    /**
+     * Get amount of positive votes.
+     *
+     * @return Integer
+     * @author Daniel Ancuta <whisller@gmail.com>
+     */
+    public function getVotesCountPlus()
+    {
+        return $this->getVotesCount(true);
+    }
+
+    /**
+     * Get amount of negative votes.
+     *
+     * @return Integer
+     * @author Daniel Ancuta <whisller@gmail.com>
+     */
+    public function getVotesCountMinus()
+    {
+        return $this->getVotesCount(false);
     }
 }

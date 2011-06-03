@@ -1,4 +1,11 @@
 <?php
+/**
+ * Action to add vote for object.
+ *
+ * @package    sfDoctrineGuardVotePlugin
+ * @subpackage modules.sfGuardVote.actions
+ * @author     Daniel Ancuta <whisller@gmail.com>
+ */
 class AddAction extends sfAction
 {
     /**
@@ -10,7 +17,9 @@ class AddAction extends sfAction
     {
         $form = new FrontendAddVoteForm();
 
-        $form->bind($request->getParameter($form->getName()));
+        $requestParameters = $request->getParameter($form->getName());
+
+        $form->bind($requestParameters);
 
         if (!$form->isValid()) {
             // if there is an error then user is trying to hack you, or your implementation isn't working :)
@@ -22,10 +31,10 @@ class AddAction extends sfAction
 
             throw new sfException($errors);
         } else {
-            $objectTable = call_user_func($request->getParameter('object').'Table::getInstance');
-            $object = $objectTable->findOneById($request->getParameter('pk'));
+            $objectTable = call_user_func($requestParameters['model'].'Table::getInstance');
+            $object = $objectTable->findOneById($requestParameters['pk']);
 
-            $object->addVote($request->getParameter('vote'));
+            $object->addVote($requestParameters['vote'], $this->getUser()->getGuardUser()->getId());
         }
 
         return $this->redirect($this->getUser()->getReferer($request->getReferer()));

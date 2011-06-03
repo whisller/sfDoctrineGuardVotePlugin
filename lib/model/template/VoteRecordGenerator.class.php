@@ -1,4 +1,18 @@
 <?php
+/**
+ * A generator for creating table for votes.
+ *
+ * This generator is creating table using this pattern
+ * <code>
+ * yourModelNamePostfix
+ *
+ * e.g. yourModelNameVote
+ * </code>
+ *
+ * @package    sfDoctrineGuardVotePlugin
+ * @subpackage lib.model.template
+ * @author     Daniel Ancuta <whisller@gmail.com>
+ */
 class VoteRecordGenerator extends Doctrine_Record_Generator
 {
     protected $_options = array(
@@ -33,8 +47,11 @@ class VoteRecordGenerator extends Doctrine_Record_Generator
 
     public function setTableDefinition()
     {
+        $this->hasColumn('id', 'integer', null, array('notnull' => true, 'primary' => true));
         $this->hasColumn('vote_type',        'boolean');
-        $this->hasColumn('sf_guard_user_id', 'integer', null, array('notnull' => true));
+        $this->hasColumn('sf_guard_user_id', 'integer', null, array('notnull' => true, 'primary' => true));
+        $this->index('id_sf_guard_user_id', array('fields' => array('id', 'sf_guard_user_id'),
+                                                  'type'   => 'unique'));
     }
 
     public function setUp()
