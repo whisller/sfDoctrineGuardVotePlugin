@@ -14,7 +14,7 @@ class sfDoctrineGuardVotePluginConfiguration extends sfPluginConfiguration
     public function initialize()
     {
         if (sfConfig::get('app_sf_doctrine_guard_vote_plugin_routes_register', true) && in_array('sfGuardVote', sfConfig::get('sf_enabled_modules', array()))) {
-            $this->dispatcher->connect('routing.load_configuration', array('sfGuardVoteRoutingPlugin', 'listenToRoutingLoadConfigurationEvent'));
+            $this->dispatcher->connect('routing.load_configuration', array('sfGuardVoteRouting', 'listenToRoutingLoadConfigurationEvent'));
         }
     }
 }

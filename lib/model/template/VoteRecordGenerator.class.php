@@ -31,14 +31,20 @@ class VoteRecordGenerator extends Doctrine_Record_Generator
         $this->buildLocalRelation();
     }
 
-    /**
-     * buildDefinition
-     *
-     * @param object $Doctrine_Table
-     * @return void
-     */
     public function setTableDefinition()
     {
-        $this->hasColumn('test', 'string', '255');
+        $this->hasColumn('vote_type',        'boolean');
+        $this->hasColumn('sf_guard_user_id', 'integer', null, array('notnull' => true));
+    }
+
+    public function setUp()
+    {
+        parent::setUp();
+
+        $this->hasOne('sfGuardUser as User', array(
+             'local'    => 'sf_guard_user_id',
+             'foreign'  => 'id',
+             'onDelete' => 'CASCADE',
+             'onUpdate' => 'CASCADE'));
     }
 }

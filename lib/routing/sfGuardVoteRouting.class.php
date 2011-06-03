@@ -6,7 +6,7 @@
  * @subpackage lib.routing
  * @author     Daniel Ancuta <whisller@gmail.com>
  */
-class sfGuardVoteRoutingPlugin
+class sfGuardVoteRouting
 {
     /**
      * Listens to the routing.load_configuration event.
@@ -19,6 +19,7 @@ class sfGuardVoteRoutingPlugin
 
         // preprend our routes
 
-
+        $r->prependRoute('sf_doctrine_guard_vote_plugin_add_vote', new sfRoute('/add-vote', array('module' => 'sfGuardVote',
+                                                                                                  'action' => 'Add')));
     }
 }
