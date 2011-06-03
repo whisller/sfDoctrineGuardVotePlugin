@@ -21,7 +21,7 @@ class Doctrine_Template_Vote extends Doctrine_Template
 
     public function setTableDefinition()
     {
-        $this->hasColumn('vote', 'integer');
+        $this->hasColumn('vote', 'integer', null, array('default' => 0));
     }
 
     protected function getVoteTableInstance()
@@ -108,7 +108,7 @@ class Doctrine_Template_Vote extends Doctrine_Template
                 ->where('v.id = ?',           $invoker->getId())
                 ->addWhere('v.vote_type = ?', $type)
                 ->from('sfMemVote v')
-                ->useResultCache(true, 86400, get_class($invoker).'Vote_'.$invoker->getId().'_'.$type);
+                ->useResultCache(true, 86400, get_class($invoker).'Vote_'.$invoker->getId().'_'.(int)$type);
 
         $results = $q->execute(array(), Doctrine_Core::HYDRATE_NONE);
 

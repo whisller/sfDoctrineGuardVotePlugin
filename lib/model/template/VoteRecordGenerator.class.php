@@ -41,7 +41,7 @@ class VoteRecordGenerator extends Doctrine_Record_Generator
 
     public function buildRelation()
     {
-        $this->buildForeignRelation('Vote');
+        $this->buildForeignRelation('Votes');
         $this->buildLocalRelation();
     }
 
