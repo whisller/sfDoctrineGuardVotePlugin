@@ -16,8 +16,11 @@ class FrontendAddVoteForm extends BaseAddVoteForm
             'model'            => new sfWidgetFormInput(array('type' => 'hidden')),
             'pk'               => new sfWidgetFormInput(array('type' => 'hidden')),
             'vote'             => new sfWidgetFormInput(array('type' => 'hidden')),
-            'sf_guard_user_id' => new sfWidgetFormInput(array('type' => 'hidden'))
+            'sf_guard_user_id' => new sfWidgetFormInput(array('type' => 'hidden')),
+            'redirect'         => new sfWidgetFormInput(array('type' => 'hidden'))
         ));
+
+        $this->setValidator('redirect', new sfValidatorString(array('required' => false)));
 
         $this->widgetSchema->setNameFormat('votes[%s]');
     }

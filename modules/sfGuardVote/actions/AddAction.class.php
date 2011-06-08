@@ -37,6 +37,10 @@ class AddAction extends sfAction
             $object->addVote($requestParameters['vote'], $this->getUser()->getGuardUser()->getId());
         }
 
-        return $this->redirect($this->getUser()->getReferer($request->getReferer()));
+        if (isset($requestParameters['redirect']) && 0 < mb_strlen($requestParameters['redirect'], 'utf-8')) {
+             return $this->redirect($requestParameters['redirect']);
+        } else {
+            return $this->redirect($this->getUser()->getReferer($request->getReferer()));
+        }
     }
 }
