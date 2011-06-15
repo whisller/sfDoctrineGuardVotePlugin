@@ -8,6 +8,8 @@
  */
 class Doctrine_Template_Vote extends Doctrine_Template
 {
+    const CAND_ADD_VOTE_PREFIX = 'sfDoctrineGuardVotePlugin_CanAddVote_';
+
     public function __construct(array $options = array())
     {
         parent::__construct($options);
@@ -52,6 +54,12 @@ class Doctrine_Template_Vote extends Doctrine_Template
         $invokerVote->sf_guard_user_id = $userId;
         $invokerVote->save();
 
+        if (!sfConfig::get('app_sfDoctrineGuardVotePlugin_authorCanAddVote', false)) {
+            $driver = $this->getTable()->getAttribute(Doctrine_Core::ATTR_RESULT_CACHE);
+
+            $driver->save(self::CAND_ADD_VOTE_PREFIX.get_class($invoker).'_'.$invoker->getId().'_'.$userId, false);
+        }
+
         // remove cache
         $driver = $this->getTable()->getAttribute(Doctrine_Core::ATTR_RESULT_CACHE);
 
@@ -68,10 +76,12 @@ class Doctrine_Template_Vote extends Doctrine_Template
      *
      * This method is checking if user is authenticated and that he not add vote earlier.
      *
+     * @param  Integer $userId   Id of user for which we are checking his posibility to add vote
+     * @param  Boolean $useCache Use or not value from cache for check if user can add or not vote
      * @return Boolean
      * @author Daniel Ancuta <whisller@gmail.com>
      */
-    public function checkCanAddVote($userId)
+    public function checkCanAddVote($userId, $useCache = true)
     {
         $user = sfContext::getInstance()->getUser();
 
@@ -87,15 +97,29 @@ class Doctrine_Template_Vote extends Doctrine_Template
             }
         }
 
-        $q = Doctrine_Query::create()
-                ->select('COUNT(v.id)')
-                ->where('v.id = ?',                  $invoker->getId())
-                ->addWhere('v.sf_guard_user_id = ?', $userId)
-                ->from('sfMemVote v');
+        $driver = $this->getTable()->getAttribute(Doctrine_Core::ATTR_RESULT_CACHE);
 
-        $results = $q->execute(array(), Doctrine_Core::HYDRATE_NONE);
+        $cacheId = self::CAND_ADD_VOTE_PREFIX.get_class($invoker).'_'.$invoker->getId().'_'.$userId;
 
-        return !(boolean)$results[0][0];
+        $canAddVoteFromCache = $driver->fetch($cacheId);
+
+        if ($canAddVoteFromCache && $useCache) {
+            $canAddVote = $canAddVoteFromCache;
+        } else {
+            $q = Doctrine_Query::create()
+                    ->select('COUNT(v.id)')
+                    ->where('v.id = ?',                  $invoker->getId())
+                    ->addWhere('v.sf_guard_user_id = ?', $userId)
+                    ->from('sfMemVote v');
+
+            $results = $q->execute(array(), Doctrine_Core::HYDRATE_NONE);
+
+            $canAddVote = !(boolean)$results[0][0];
+
+            $driver->save($cacheId, $canAddVote);
+        }
+
+        return $canAddVote;
     }
 
     /**
