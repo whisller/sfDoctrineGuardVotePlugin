@@ -1,0 +1,6 @@
+all:
+  sfDoctrineGuardVotePlugin:
+    ##
+    # If author of object can add vote for object that he is owner
+    ##
+    authorCanAddVote: false

@@ -71,7 +71,7 @@ class Doctrine_Template_Vote extends Doctrine_Template
      * @return Boolean
      * @author Daniel Ancuta <whisller@gmail.com>
      */
-    public function checkCanAddVote($userId = null)
+    public function checkCanAddVote($userId)
     {
         $user = sfContext::getInstance()->getUser();
 
@@ -80,6 +80,12 @@ class Doctrine_Template_Vote extends Doctrine_Template
         }
 
         $invoker = $this->getInvoker();
+
+        if (!sfConfig::get('app_sfDoctrineGuardVotePlugin_authorCanAddVote', false)) {
+            if ($userId == $invoker->getSfGuardUserId()) {
+                return false;
+            }
+        }
 
         $q = Doctrine_Query::create()
                 ->select('COUNT(v.id)')
