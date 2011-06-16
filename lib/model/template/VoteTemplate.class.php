@@ -8,7 +8,7 @@
  */
 class Doctrine_Template_Vote extends Doctrine_Template
 {
-    const CAND_ADD_VOTE_PREFIX = 'sfDoctrineGuardVotePlugin_CanAddVote_';
+    const CAND_ADD_VOTE_PREFIX = 'sfGuardVote_CanAddVote_';
 
     public function __construct(array $options = array())
     {
@@ -23,16 +23,9 @@ class Doctrine_Template_Vote extends Doctrine_Template
 
     public function setTableDefinition()
     {
-        $this->hasColumn('vote', 'integer', null, array('default' => 0));
-    }
-
-    protected function getVoteTableInstance()
-    {
-        $invoker = $this->getInvoker();
-
-        $instance = Doctrine_Core::getTable(get_class($invoker).'Vote');
-
-        return $instance;
+        $this->hasColumn('vote',          'integer', null, array('default' => 0));
+        $this->hasColumn('vote_positive', 'integer', null, array('default' => 0));
+        $this->hasColumn('vote_negative', 'integer', null, array('default' => 0));
     }
 
     /**
@@ -54,19 +47,19 @@ class Doctrine_Template_Vote extends Doctrine_Template
         $invokerVote->sf_guard_user_id = $userId;
         $invokerVote->save();
 
-        if (!sfConfig::get('app_sfDoctrineGuardVotePlugin_authorCanAddVote', false)) {
-            $driver = $this->getTable()->getAttribute(Doctrine_Core::ATTR_RESULT_CACHE);
+        $driver = $this->getTable()->getAttribute(Doctrine_Core::ATTR_RESULT_CACHE);
 
+        if (!sfConfig::get('app_sfDoctrineGuardVotePlugin_authorCanAddVote', false)) {
             $driver->save(self::CAND_ADD_VOTE_PREFIX.get_class($invoker).'_'.$invoker->getId().'_'.$userId, false);
         }
 
-        // remove cache
-        $driver = $this->getTable()->getAttribute(Doctrine_Core::ATTR_RESULT_CACHE);
+        $votesPositive = $this->getVotesCountPositive(true);
+        $votesNegative = $this->getVotesCountNegative(true);
 
-        $driver->delete(get_class($invoker).'Vote_'.$invoker->getId().'_'.$type);
+        $invoker->setVotePositive($votesPositive);
+        $invoker->setVoteNegative($votesNegative);
+        $invoker->setVote($votesPositive - $votesNegative);
 
-        // update amount of votes in object
-        $invoker->vote = $this->getVotesCountPositive()-$this->getVotesCountNegative();
         $invoker->save();
     }
 
@@ -101,10 +94,8 @@ class Doctrine_Template_Vote extends Doctrine_Template
 
         $cacheId = self::CAND_ADD_VOTE_PREFIX.get_class($invoker).'_'.$invoker->getId().'_'.$userId;
 
-        $canAddVoteFromCache = $driver->fetch($cacheId);
-
-        if ($canAddVoteFromCache && $useCache) {
-            $canAddVote = $canAddVoteFromCache;
+        if ($driver->contains($cacheId) && $useCache) {
+            $canAddVote = $driver->fetch($cacheId);
         } else {
             $q = Doctrine_Query::create()
                     ->select('COUNT(v.id)')
@@ -129,7 +120,7 @@ class Doctrine_Template_Vote extends Doctrine_Template
      * @return type Integer
      * @author Daniel Ancuta <whisller@gmail.com>
      */
-    protected function getVotesCount($type)
+    protected function getVotesCount($type, $useCache = true)
     {
         $invoker = $this->getInvoker();
 
@@ -137,8 +128,7 @@ class Doctrine_Template_Vote extends Doctrine_Template
                 ->select('COUNT(v.id)')
                 ->where('v.id = ?',           $invoker->getId())
                 ->addWhere('v.vote_type = ?', $type)
-                ->from('sfMemVote v')
-                ->useResultCache(true, 86400, get_class($invoker).'Vote_'.$invoker->getId().'_'.(int)$type);
+                ->from('sfMemVote v');
 
         $results = $q->execute(array(), Doctrine_Core::HYDRATE_NONE);
 
@@ -151,9 +141,15 @@ class Doctrine_Template_Vote extends Doctrine_Template
      * @return Integer
      * @author Daniel Ancuta <whisller@gmail.com>
      */
-    public function getVotesCountPositive()
+    public function getVotesCountPositive($inRealTime = false)
     {
-        return $this->getVotesCount(true);
+        if ($inRealTime) {
+            $count = $this->getVotesCount(true);
+        } else {
+            return $this->getInvoker()->getVotePositive();
+        }
+
+        return $count;
     }
 
     /**
@@ -162,8 +158,14 @@ class Doctrine_Template_Vote extends Doctrine_Template
      * @return Integer
      * @author Daniel Ancuta <whisller@gmail.com>
      */
-    public function getVotesCountNegative()
+    public function getVotesCountNegative($inRealTime = false)
     {
-        return $this->getVotesCount(false);
+        if ($inRealTime) {
+            $count = $this->getVotesCount(false);
+        } else {
+            return $this->getInvoker()->getVoteNegative();
+        }
+
+        return $count;
     }
 }
