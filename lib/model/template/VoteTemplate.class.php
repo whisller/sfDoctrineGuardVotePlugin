@@ -146,10 +146,10 @@ class Doctrine_Template_Vote extends Doctrine_Template
         if ($inRealTime) {
             $count = $this->getVotesCount(true);
         } else {
-            return $this->getInvoker()->getVotePositive();
+            $count = $this->getInvoker()->getVotePositive();
         }
 
-        return $count;
+        return (int)$count;
     }
 
     /**
@@ -163,9 +163,9 @@ class Doctrine_Template_Vote extends Doctrine_Template
         if ($inRealTime) {
             $count = $this->getVotesCount(false);
         } else {
-            return $this->getInvoker()->getVoteNegative();
+            $count = $this->getInvoker()->getVoteNegative();
         }
 
-        return $count;
+        return (int)$count;
     }
 }
