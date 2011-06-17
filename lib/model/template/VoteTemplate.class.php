@@ -117,10 +117,9 @@ class Doctrine_Template_Vote extends Doctrine_Template
      * Get amount of votes.
      *
      * @param  type $type
-     * @return type Integer
      * @author Daniel Ancuta <whisller@gmail.com>
      */
-    protected function getVotesCount($type, $useCache = true)
+    protected function getVotesCount($type)
     {
         $invoker = $this->getInvoker();
 
